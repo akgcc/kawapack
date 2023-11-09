@@ -158,11 +158,17 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path):
                     export(resource, target_path)
                     
 def extract_character_with_faces(env: Environment, source_dir: Path, output_dir: Path):
+    print('now extracting:',Path(next(iter(env.container.keys()))).stem)
     path_map = {}
+    sprite_to_texture_map = {}
+    texture_map = {}
     groupData = {}
     for object in env.objects:
         if object.type in {Obj.Sprite, Obj.Texture2D, Obj.MonoBehaviour}:
             resource = object.read()
+            if object.type == Obj.Sprite:
+                # map this sprite to its texture (which we will use for compositing)
+                sprite_to_texture_map[resource.path_id] = resource.m_RD.texture.path_id
             if not isinstance(resource, Object):
                 continue
             if object.type in {Obj.Sprite, Obj.Texture2D}:
@@ -176,6 +182,8 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                     tree = resource.read_typetree()
                     groupData = tree
                     groupData['spriteGroups'] = [{'sprites':groupData['sprites'],'facePos':groupData.get('facePos',groupData['FacePos']), 'faceSize': groupData.get('faceSize',groupData['FaceSize'])}]
+    texture_map = {k: path_map[v] for k, v in sprite_to_texture_map.items()}
+        
     for bodyNum,body in enumerate(groupData['spriteGroups']):
         face_rect = {
             'x': int(body['facePos']['x']),
@@ -188,10 +196,18 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
         
         if not isFullImages:
             # load base image (last one in sprites) and apply alpha
-            base = combine_alpha(path_map[body['sprites'][-1]['sprite']['m_PathID']].image, path_map[body['sprites'][-1]['alphaTex']['m_PathID']].image)
+            # alpha is always a Texture2D and never a Sprite, so we use path_map instead, on newer sprites alpha is baked in so alphaTex.m_PathID will be 0
+            if body['sprites'][-1]['alphaTex']['m_PathID']:
+                base = combine_alpha(texture_map[body['sprites'][-1]['sprite']['m_PathID']].image, path_map[body['sprites'][-1]['alphaTex']['m_PathID']].image)
+            else:
+                base = texture_map[body['sprites'][-1]['sprite']['m_PathID']].image.convert("RGBA")
         for faceNum,face in enumerate(body['sprites']):
             dest_path = (output_dir / source_dir / f'{Path(next(iter(env.container.keys()))).stem}#{faceNum+1}${bodyNum+1}').with_suffix(".png")
-            face_img = combine_alpha(path_map[face['sprite']['m_PathID']].image,path_map[face['alphaTex']['m_PathID']].image)
+            if face['alphaTex']['m_PathID']:
+                face_img = combine_alpha(texture_map[face['sprite']['m_PathID']].image, path_map[face['alphaTex']['m_PathID']].image)
+            else:
+                face_img = texture_map[face['sprite']['m_PathID']].image.convert("RGBA")
+            
             if isFullImages or face.get('isWholeBody',False):
                 face_img.save(dest_path)
                 face_img.close()
