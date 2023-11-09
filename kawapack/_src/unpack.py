@@ -158,7 +158,6 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path):
                     export(resource, target_path)
                     
 def extract_character_with_faces(env: Environment, source_dir: Path, output_dir: Path):
-    print('now extracting:',Path(next(iter(env.container.keys()))).stem)
     path_map = {}
     sprite_to_texture_map = {}
     texture_map = {}
