@@ -8,6 +8,8 @@ from Crypto.Cipher import AES
 from fsb5 import FSB5
 from warnings import warn
 from PIL import Image
+import pydub
+import io
 
 def get_target_path(obj: Object, source_dir: Path, output_dir: Path) -> Path:
     if obj.container:
@@ -116,16 +118,20 @@ def export(obj: Object, target_path: Path) -> None:
                         write_bytes(data, target_path)
 
         case AudioClip():
+            # immediately convert to mp3 with pydub
             fsb = FSB5(obj.m_AudioData)
             assert len(fsb.samples) == 1
-            target_path = target_path.with_suffix("." + fsb.get_sample_extension())
+            # target_path = target_path.with_suffix("." + fsb.get_sample_extension())
 
             try:
                 # Audio clip conversion will fail if DLLs needed by fsb5
                 # (libogg, libvorbis, libvorbisenc, libvorbisfile) cannot be found
                 # or the CRC32 value associated with the file format is incorrect.
                 sample = fsb.rebuild_sample(fsb.samples[0])
-                write_bytes(sample, target_path)
+                s = io.BytesIO(sample)
+                s.seek(0)
+                pydub.AudioSegment.from_file(s).export(target_path.with_suffix('.mp3'), format='mp3')
+                # write_bytes(sample, target_path)
             except:
                 warn(f"Failed to save audio clip to {target_path}", RuntimeWarning)
 
