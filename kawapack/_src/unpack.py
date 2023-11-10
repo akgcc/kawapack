@@ -154,7 +154,7 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path):
                 resource = object.read()
                 if isinstance(resource, Texture2D) and resource.m_Width > 512 and resource.m_Height > 512:
                     target_path = get_target_path(resource, source_dir, output_dir)
-                    export(env, resource, target_path)
+                    export(resource, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
         extract_character_with_faces(env, source_dir, output_dir)
     else:
