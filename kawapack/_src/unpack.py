@@ -127,6 +127,7 @@ def export(obj: Object, target_path: Path) -> None:
                 # Audio clip conversion will fail if DLLs needed by fsb5
                 # (libogg, libvorbis, libvorbisenc, libvorbisfile) cannot be found
                 # or the CRC32 value associated with the file format is incorrect.
+                target_path.parent.mkdir(parents=True, exist_ok=True)
                 sample = fsb.rebuild_sample(fsb.samples[0])
                 s = io.BytesIO(sample)
                 s.seek(0)
