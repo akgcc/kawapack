@@ -134,6 +134,7 @@ def export(obj: Object, target_path: Path) -> None:
                 # write_bytes(sample, target_path)
             except:
                 warn(f"Failed to save audio clip to {target_path}", RuntimeWarning)
+                raise
 
         case MonoBehaviour():
             if obj.name:
