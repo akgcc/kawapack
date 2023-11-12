@@ -19,7 +19,7 @@ def get_target_path(obj: Object, source_dir: Path, output_dir: Path) -> Path:
         return Path(str(output_dir / source_dir / script.read().name).lower())
 
     assert isinstance(obj.name, str)
-    return Path(output_dir / source_dir / obj.name).lower())
+    return Path(str(output_dir / source_dir / obj.name).lower())
 
 
 # Some assets have identical file paths, so unique
@@ -135,6 +135,7 @@ def export(obj: Object, target_path: Path) -> None:
                 # write_bytes(sample, target_path)
             except:
                 warn(f"Failed to save audio clip to {target_path}", RuntimeWarning)
+                raise
 
         case MonoBehaviour():
             if obj.name:
