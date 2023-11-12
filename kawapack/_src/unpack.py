@@ -16,10 +16,10 @@ def get_target_path(obj: Object, source_dir: Path, output_dir: Path) -> Path:
         source_dir = Path(*Path(obj.container).parts[1:-1])
 
     if isinstance(obj, MonoBehaviour) and (script := obj.m_Script):
-        return output_dir / source_dir / script.read().name
+        return Path(str(output_dir / source_dir / script.read().name).lower())
 
     assert isinstance(obj.name, str)
-    return output_dir / source_dir / obj.name
+    return Path(output_dir / source_dir / obj.name).lower())
 
 
 # Some assets have identical file paths, so unique
@@ -127,7 +127,6 @@ def export(obj: Object, target_path: Path) -> None:
                 # Audio clip conversion will fail if DLLs needed by fsb5
                 # (libogg, libvorbis, libvorbisenc, libvorbisfile) cannot be found
                 # or the CRC32 value associated with the file format is incorrect.
-                target_path.parent.mkdir(parents=True, exist_ok=True)
                 sample = fsb.rebuild_sample(fsb.samples[0])
                 s = io.BytesIO(sample)
                 s.seek(0)
@@ -135,7 +134,6 @@ def export(obj: Object, target_path: Path) -> None:
                 # write_bytes(sample, target_path)
             except:
                 warn(f"Failed to save audio clip to {target_path}", RuntimeWarning)
-                raise
 
         case MonoBehaviour():
             if obj.name:
@@ -156,7 +154,7 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path):
                     target_path = get_target_path(resource, source_dir, output_dir)
                     export(resource, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
-        extract_character_with_faces(env, source_dir, output_dir)
+        extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
     else:
         for object in env.objects:
             if object.type in {Obj.Sprite, Obj.Texture2D, Obj.TextAsset, Obj.AudioClip, Obj.MonoBehaviour}:
