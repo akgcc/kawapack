@@ -13,7 +13,12 @@ import io
 
 def get_target_path(obj: Object, source_dir: Path, output_dir: Path) -> Path:
     if obj.container:
-        source_dir = Path(*Path(obj.container).parts[1:-1])
+        parts = Path(obj.container).parts
+        if (len(parts)>2 and parts[-3] == 'charavatars'):
+            # flatten the charavatars dir (normally has subdirs "elite" and "skins")
+            source_dir = Path(*parts[1:-2])
+        else:
+            source_dir = Path(*parts[1:-1])
 
     if isinstance(obj, MonoBehaviour) and (script := obj.m_Script):
         return Path(str(output_dir / source_dir / script.read().name).lower())
