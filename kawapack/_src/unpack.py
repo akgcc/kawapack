@@ -10,6 +10,13 @@ from warnings import warn
 from PIL import Image
 import pydub
 import io
+import subprocess
+FBS_FILES = []
+# FBS unpacking requires 2 things:
+# 1. clone https://github.com/MooncellWiki/OpenArknightsFBS.git into /arkdata
+# 2. build flatc and add to path (or put the executable in the /arkdata dir)
+if Path(r".\OpenArknightsFBS\FBS").exists():
+    FBS_FILES = [p for p in Path(r".\OpenArknightsFBS\FBS").glob('*.fbs')]
 
 def get_target_path(obj: Object, source_dir: Path, output_dir: Path) -> Path:
     if obj.container:
@@ -120,7 +127,22 @@ def export(obj: Object, target_path: Path) -> None:
                     try:
                         write_object(json.loads(data), target_path)
                     except:
-                        write_bytes(data, target_path)
+                        for fbs in FBS_FILES:
+                            if obj.name.startswith(fbs.stem):
+                                # is a flatbuffer, convert to json:
+                                raw = target_path.with_name(fbs.stem)
+                                write_bytes(data[128:], raw) # The first leading 128 bytes are RSA signature from Hypergryph to ensure the integrity of tables.
+                                command = ["flatc",'--json','-o',str(target_path.parent),'--raw-binary',str(fbs),'--',str(raw),'--strict-json', '--natural-utf8', '--defaults-json','--no-warnings']
+                                # print( ' '.join(command))
+                                try:
+                                    subprocess.run(command, check=True)
+                                except subprocess.CalledProcessError as e:
+                                    write_bytes(data, target_path)
+                                finally:
+                                    raw.unlink()
+                                break
+                        else:
+                            write_bytes(data, target_path)
 
         case AudioClip():
             # immediately convert to mp3 with pydub
@@ -215,7 +237,7 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                 base = texture_map[body['sprites'][-1]['sprite']['m_PathID']].image.convert("RGBA")
         for faceNum,face in enumerate(body['sprites']):
             dest_path = (output_dir / source_dir / f'{Path(next(iter(env.container.keys()))).stem}#{faceNum+1}${bodyNum+1}').with_suffix(".png")
-            if face['alphaTex']['m_PathID'] and list(env.container.keys()) != ['assets/torappu/dynamicassets/avg/characters/avg_6d5_1.prefab']: # except this one file
+            if face['alphaTex']['m_PathID']:
                 face_img = combine_alpha(texture_map[face['sprite']['m_PathID']].image, path_map[face['alphaTex']['m_PathID']].image)
             else:
                 face_img = texture_map[face['sprite']['m_PathID']].image.convert("RGBA")
