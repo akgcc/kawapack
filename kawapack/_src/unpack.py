@@ -173,7 +173,7 @@ def export(obj: Object, target_path: Path) -> None:
                 write_object(tree, target_path)
 
 
-def extract_from_env(env: Environment, source_dir: Path, output_dir: Path):
+def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_data, filename):
     source_path_parts = set(source_dir.parts)
     if "chararts" in source_path_parts or "skinpack" in source_path_parts:
         for object in env.objects:
@@ -184,6 +184,12 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path):
                     export(resource, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
         extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
+    elif "video" in source_path_parts:
+        # not a unity object, just a raw mp4 file.
+        dest_path = (output_dir / source_dir / filename)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        with dest_path.open('wb') as f:
+            f.write(raw_data)
     else:
         for object in env.objects:
             if object.type in {Obj.Sprite, Obj.Texture2D, Obj.TextAsset, Obj.AudioClip, Obj.MonoBehaviour}:
