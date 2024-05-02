@@ -14,11 +14,11 @@ __all__ = ["extract", "extract_all", "DirPath"]
 DirPath = str | PathLike[str]
 
 
-def extract(data: BinaryIO, source_dir: DirPath, output_dir: DirPath) -> None:
+def extract(data: BinaryIO, source_dir: DirPath, output_dir: DirPath, filename: str) -> None:
     output_dir = Path(output_dir)
     if not output_dir.is_dir():
         output_dir.mkdir()
-    extract_from_env(Environment(data), Path(source_dir), output_dir)
+    extract_from_env(Environment(data), Path(source_dir), output_dir, data, filename)
 
 
 def extract_all(
@@ -42,7 +42,7 @@ def extract_all(
     for path in input_dir.glob("**/*.ab"):
         if path.is_file():
             with open(path, "rb") as bundle:
-                extract_from_env(Environment(bundle), path.parent, output_dir)
+                extract_from_env(Environment(bundle), path.parent, output_dir, bundle, path.name)
 
     combine_textures(output_dir)
 
