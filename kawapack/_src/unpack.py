@@ -174,6 +174,7 @@ def export(obj: Object, target_path: Path) -> None:
 
 
 def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_data, filename):
+    print('extracting from env',env,source_dir,output_dir)
     source_path_parts = set(source_dir.parts)
     if "chararts" in source_path_parts or "skinpack" in source_path_parts:
         for object in env.objects:
