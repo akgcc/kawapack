@@ -224,7 +224,9 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                     groupData = tree
                     groupData['spriteGroups'] = [{'sprites':groupData['sprites'],'facePos':groupData.get('facePos',groupData['FacePos']), 'faceSize': groupData.get('faceSize',groupData['FaceSize'])}]
     texture_map = {k: path_map[v] for k, v in sprite_to_texture_map.items()}
-        
+    if len(path_map) < sum([len(g['sprites']) for g in groupData['spriteGroups']])*2:
+        print('number of textures was less than expected, indicating missing data, skipping...')
+        return None
     for bodyNum,body in enumerate(groupData['spriteGroups']):
         face_rect = {
             'x': int(body['facePos']['x']),
