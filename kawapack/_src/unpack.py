@@ -224,8 +224,8 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                     groupData = tree
                     groupData['spriteGroups'] = [{'sprites':groupData['sprites'],'facePos':groupData.get('facePos',groupData['FacePos']), 'faceSize': groupData.get('faceSize',groupData['FaceSize'])}]
     texture_map = {k: path_map[v] for k, v in sprite_to_texture_map.items()}
-    if len(path_map) < sum([len(g['sprites']) for g in groupData['spriteGroups']])*2:
-        print('number of textures was less than expected, indicating missing data, skipping...')
+    if len(path_map) == 0:
+        print('No images found, skipping...')
         return None
     for bodyNum,body in enumerate(groupData['spriteGroups']):
         face_rect = {
@@ -244,6 +244,21 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                 base = combine_alpha(texture_map[body['sprites'][-1]['sprite']['m_PathID']].image, path_map[body['sprites'][-1]['alphaTex']['m_PathID']].image)
             else:
                 base = texture_map[body['sprites'][-1]['sprite']['m_PathID']].image.convert("RGBA")
+            bw,bh = base.width,base.height
+            # calculate face offset, thanks to arkwaifu.cc for this algorithm
+            if bw == bh and bw < 1024:
+                #scale to 1024
+                for k in face_rect:
+                    face_rect[k] = int(bw / 1024 * face_rect[k])
+            # seems HG has fixed their data so these bottom 2 no longer occur:
+            elif bw != bh and max(bw,bh) < 1024:
+                # pad to 1024 (not on bottom)
+                face_rect['x'] += (bw - 1024) // 2
+                face_rect['y'] += bh - 1024
+            elif bw != bh: # max is > 1024
+                # pad to larger dimension
+                face_rect['x'] += (bw - max(bw,bh)) // 2
+                face_rect['y'] += (bh - max(bw,bh)) // 2
         for faceNum,face in enumerate(body['sprites']):
             dest_path = (output_dir / source_dir / f'{Path(next(iter(env.container.keys()))).stem}#{faceNum+1}${bodyNum+1}').with_suffix(".png")
             if face['alphaTex']['m_PathID'] and list(env.container.keys()) != ['assets/torappu/dynamicassets/avg/characters/avg_6d5_1.prefab']: # except this one file
