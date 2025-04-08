@@ -7,7 +7,7 @@ license = "AGPL-3.0-or-later"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-UnityPy = { git = "https://github.com/K0lb3/UnityPy.git" }
+UnityPy = { git = "https://github.com/MooncellWiki/UnityPy.git" }
 Pillow = "^10.1.0"
 pycryptodome = "^3.19.0"
 pymongo = "^4.5.0"
