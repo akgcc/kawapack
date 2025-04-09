@@ -7,6 +7,8 @@ from UnityPy import Environment
 from .unpack import extract_from_env
 from .image import combine_textures, process_portraits
 
+import os
+os.environ["UNITYPY_AK"] = "1"
 
 __all__ = ["extract", "extract_all", "DirPath"]
 
