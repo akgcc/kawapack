@@ -218,17 +218,11 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                 path_map[object.path_id] = resource
             elif object.type == Obj.MonoBehaviour and (script := resource.m_Script):
                 tree = object.read_typetree()
-                if 'spriteGroups' in tree:
+                # dname = script.read().name broke in 2.5 but should be one of the 2 below:
+                if 'spriteGroups' in tree: # AVGCharacterSpriteHubGroup
                     groupData = tree
-                continue
-                dname = script.read().name
-                if dname == 'AVGCharacterSpriteHubGroup':
-                    tree = resource.read_typetree()
-                    groupData = tree
-                elif dname == 'AVGCharacterSpriteHub':
-                    tree = resource.read_typetree()
-                    groupData = tree
-                    groupData['spriteGroups'] = [{'sprites':groupData['sprites'],'facePos':groupData.get('facePos',groupData['FacePos']), 'faceSize': groupData.get('faceSize',groupData['FaceSize'])}]
+                elif 'sprites' in tree: # AVGCharacterSpriteHub
+                    groupData['spriteGroups'] = [{'sprites':tree['sprites'],'facePos':tree.get('facePos',tree['FacePos']), 'faceSize': tree.get('faceSize',tree['FaceSize'])}]
     texture_map = {k: path_map[v] for k, v in sprite_to_texture_map.items()}
     if len(path_map) == 0:
         print('No images found, skipping...')
