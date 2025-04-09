@@ -19,19 +19,20 @@ if Path(r".\OpenArknightsFBS\FBS").exists():
     FBS_FILES = [p for p in Path(r".\OpenArknightsFBS\FBS").glob('*.fbs')]
 
 def get_target_path(obj: Object, source_dir: Path, output_dir: Path) -> Path:
+    resource = obj.read()
     if obj.container:
         parts = Path(obj.container).parts
         if (len(parts)>2 and parts[-3] == 'charavatars'):
             # flatten the charavatars dir (normally has subdirs "elite" and "skins")
-            source_dir = Path(*parts[1:-2])
+            source_dir = Path('torappu','dynamicassets',*parts[1:-2])
         else:
-            source_dir = Path(*parts[1:-1])
+            source_dir = Path('torappu','dynamicassets',*parts[1:-1])
 
-    if isinstance(obj, MonoBehaviour) and (script := obj.m_Script):
-        return Path(str(output_dir / source_dir / script.read().name).lower())
+    # if isinstance(obj, MonoBehaviour) and (script := obj.m_Script):
+        # return Path(str(output_dir / source_dir / script.read().name).lower())
 
-    assert isinstance(obj.name, str)
-    return Path(str(output_dir / source_dir / obj.name).lower())
+    assert isinstance(resource.m_Name, str)
+    return Path(str(output_dir / source_dir / resource.m_Name).lower())
 
 
 # Some assets have identical file paths, so unique
@@ -89,7 +90,8 @@ def decrypt_textasset(stream: bytes) -> bytes:
     return unpad(decrypted)
 
 
-def export(obj: Object, target_path: Path) -> None:
+def export(_orig: Object, target_path: Path) -> None:
+    obj = _orig.read()
     match obj:
         case Sprite() | Texture2D():
             if (img := obj.image).width > 0:
@@ -165,10 +167,10 @@ def export(obj: Object, target_path: Path) -> None:
                 raise
 
         case MonoBehaviour():
-            if obj.name:
-                tree = obj.read_typetree()
+            if obj.m_Name:
+                tree = _orig.read_typetree()
                 target_path = get_available_path(
-                    target_path.joinpath(obj.name).with_suffix(".json")
+                    target_path.joinpath(obj.m_Name).with_suffix(".json")
                 )
                 write_object(tree, target_path)
 
@@ -181,8 +183,8 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
             if object.type == Obj.Texture2D:
                 resource = object.read()
                 if isinstance(resource, Texture2D) and resource.m_Width > 512 and resource.m_Height > 512:
-                    target_path = get_target_path(resource, source_dir, output_dir)
-                    export(resource, target_path)
+                    target_path = get_target_path(object, source_dir, output_dir)
+                    export(object, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
         extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
     elif "video" in source_path_parts:
@@ -196,8 +198,8 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
             if object.type in {Obj.Sprite, Obj.Texture2D, Obj.TextAsset, Obj.AudioClip, Obj.MonoBehaviour}:
                 resource = object.read()
                 if isinstance(resource, Object):
-                    target_path = get_target_path(resource, source_dir, output_dir)
-                    export(resource, target_path)
+                    target_path = get_target_path(object, source_dir, output_dir)
+                    export(object, target_path)
                     
 def extract_character_with_faces(env: Environment, source_dir: Path, output_dir: Path):
     path_map = {}
@@ -209,12 +211,16 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
             resource = object.read()
             if object.type == Obj.Sprite:
                 # map this sprite to its texture (which we will use for compositing)
-                sprite_to_texture_map[resource.path_id] = resource.m_RD.texture.path_id
+                sprite_to_texture_map[object.path_id] = resource.m_RD.texture.path_id
             if not isinstance(resource, Object):
                 continue
             if object.type in {Obj.Sprite, Obj.Texture2D}:
-                path_map[resource.path_id] = resource
+                path_map[object.path_id] = resource
             elif object.type == Obj.MonoBehaviour and (script := resource.m_Script):
+                tree = object.read_typetree()
+                if 'spriteGroups' in tree:
+                    groupData = tree
+                continue
                 dname = script.read().name
                 if dname == 'AVGCharacterSpriteHubGroup':
                     tree = resource.read_typetree()
