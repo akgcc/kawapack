@@ -9,7 +9,7 @@ from .image import combine_textures, process_portraits
 
 import os
 os.environ["UNITYPY_AK"] = "1"
-
+import traceback
 __all__ = ["extract", "extract_all", "DirPath"]
 
 
@@ -20,8 +20,11 @@ def extract(data: BinaryIO, source_dir: DirPath, output_dir: DirPath, filename: 
     output_dir = Path(output_dir)
     if not output_dir.is_dir():
         output_dir.mkdir()
-    extract_from_env(Environment(data), Path(source_dir), output_dir, data, filename)
-
+    try:
+        extract_from_env(Environment(data), Path(source_dir), output_dir, data, filename)
+    except:
+        traceback.print_exc()
+        raise
 
 def extract_all(
     input_dir: DirPath,
