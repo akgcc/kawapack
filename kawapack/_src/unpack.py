@@ -11,6 +11,9 @@ from PIL import Image
 import pydub
 import io
 import subprocess
+from wannacri.wannacri import *
+import hashlib
+
 FBS_FILES = []
 # FBS unpacking requires 2 things:
 # 1. clone https://github.com/MooncellWiki/OpenArknightsFBS.git into /arkdata
@@ -202,10 +205,9 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
         extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
     elif "video" in source_path_parts:
         # not a unity object, just a raw mp4 file.
-        dest_path = (output_dir / source_dir / filename)
+        dest_path = (output_dir / source_dir / filename.replace('.usm','.mp4'))
         dest_path.parent.mkdir(parents=True, exist_ok=True)
-        with dest_path.open('wb') as f:
-            f.write(raw_data)
+        extract_usm_video(raw_data, dest_path)
     else:
         for object in env.objects:
             if object.type in {Obj.Sprite, Obj.Texture2D, Obj.TextAsset, Obj.AudioClip, Obj.MonoBehaviour}:
@@ -213,7 +215,22 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
                 if isinstance(resource, Object):
                     target_path = get_target_path(object, source_dir, output_dir)
                     export(env, object, target_path)
-                    
+
+def extract_usm_video(raw_data, dest_path):
+    fname = int(hashlib.md5(str(dest_path).encode('utf-8')).hexdigest(), 16)
+    usm = Usm.open(None, encoding="shift-jis", key=None, raw_bytes = raw_data)
+    outfiles = usm.demux(
+        path='./TMP_VIDEO_MUXING',
+        save_video=True,
+        save_audio=True,
+        save_pages=False,
+        folder_name=fname,
+    )
+    flat_files = [x for xs in outfiles for x in xs]
+    command = ['ffmpeg','-y']
+    command.extend(sum([['-i', x] for x in flat_files], []))
+    command.extend([dest_path])
+    subprocess.run(command,check=True)
 def extract_character_with_faces(env: Environment, source_dir: Path, output_dir: Path):
     path_map = {}
     sprite_to_texture_map = {}
