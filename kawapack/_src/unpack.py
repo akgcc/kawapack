@@ -261,7 +261,7 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                 face_rect['y'] += (bh - max(bw,bh)) // 2
         for faceNum,face in enumerate(body['sprites']):
             dest_path = (output_dir / source_dir / f'{Path(next(iter(env.container.keys()))).stem}#{faceNum+1}${bodyNum+1}').with_suffix(".png")
-            if face['alphaTex']['m_PathID'] and list(env.container.keys()) != ['assets/torappu/dynamicassets/avg/characters/avg_6d5_1.prefab']: # except this one file
+            if face['alphaTex']['m_PathID'] and not next(iter(env.container.keys())).endswith('avg_6d5_1.prefab'): # except this one file
                 face_img = combine_alpha(texture_map[face['sprite']['m_PathID']].image, path_map[face['alphaTex']['m_PathID']].image)
             else:
                 face_img = texture_map[face['sprite']['m_PathID']].image.convert("RGBA")
