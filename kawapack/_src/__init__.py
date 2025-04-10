@@ -7,8 +7,12 @@ from UnityPy import Environment
 from .unpack import extract_from_env
 from .image import combine_textures, process_portraits
 
-import os
-os.environ["UNITYPY_AK"] = "1"
+from UnityPy.enums.BundleFile import CompressionFlags
+from UnityPy.helpers import CompressionHelper
+from .lz4ak.Block import decompress_lz4ak
+# New compression algorithm introduced in Arknights v2.5.04+
+CompressionHelper.DECOMPRESSION_MAP[CompressionFlags.LZHAM] = decompress_lz4ak
+
 import traceback
 __all__ = ["extract", "extract_all", "DirPath"]
 
