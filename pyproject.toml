@@ -12,6 +12,10 @@ Pillow = "^10.1.0"
 pycryptodome = "^3.19.0"
 pymongo = "^4.5.0"
 fsb5 = "^1.0"
+wannacri = { git = "https://github.com/akgcc/WannaCRI" }
+#wannacri deps:
+ffmpeg-python = "^0.2.0"
+python-json-logger = "^2.0.2"
 
 [build-system]
 requires = ["poetry-core"]
