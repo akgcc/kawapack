@@ -90,7 +90,7 @@ def decrypt_textasset(stream: bytes) -> bytes:
     return unpad(decrypted)
 
 
-def export(_orig: Object, target_path: Path) -> None:
+def export(env: Environment, _orig: Object, target_path: Path) -> None:
     obj = _orig.read()
     match obj:
         case Sprite() | Texture2D():
@@ -147,8 +147,21 @@ def export(_orig: Object, target_path: Path) -> None:
                             write_bytes(data, target_path)
 
         case AudioClip():
+            # UnityPy doesn't load m_AudioData correctly, this may have something to do with the compression/encryption change in AK v2.5
+            # for now we will extract it manually instead:
+            audio_bytes = obj.m_AudioData
+            if not audio_bytes:
+                source_file = obj.m_Resource.m_Source
+                offset = obj.m_Resource.m_Offset
+                size = obj.m_Resource.m_Size            
+                for bundle in env.files.values():
+                    for name, reader in bundle.files.items():
+                        if source_file.endswith(name):
+                            # found matching file, read bytes from offset
+                            reader.Position = offset
+                            audio_bytes = bytes(reader.read(size))
             # immediately convert to mp3 with pydub
-            fsb = FSB5(obj.m_AudioData)
+            fsb = FSB5(audio_bytes)
             assert len(fsb.samples) == 1
             # target_path = target_path.with_suffix("." + fsb.get_sample_extension())
 
@@ -184,7 +197,7 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
                 resource = object.read()
                 if isinstance(resource, Texture2D) and resource.m_Width > 512 and resource.m_Height > 512:
                     target_path = get_target_path(object, source_dir, output_dir)
-                    export(object, target_path)
+                    export(env, object, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
         extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
     elif "video" in source_path_parts:
@@ -199,7 +212,7 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
                 resource = object.read()
                 if isinstance(resource, Object):
                     target_path = get_target_path(object, source_dir, output_dir)
-                    export(object, target_path)
+                    export(env, object, target_path)
                     
 def extract_character_with_faces(env: Environment, source_dir: Path, output_dir: Path):
     path_map = {}
