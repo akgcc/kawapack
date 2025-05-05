@@ -218,7 +218,7 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
 
 def extract_usm_video(raw_data, dest_path):
     fname = int(hashlib.md5(str(dest_path).encode('utf-8')).hexdigest(), 16)
-    usm = Usm.open(None, encoding="shift-jis", key=None, raw_bytes = raw_data)
+    usm = Usm.open(None, encoding="gb18030", key=None, raw_bytes = raw_data)
     outfiles = usm.demux(
         path='./TMP_VIDEO_MUXING',
         save_video=True,
