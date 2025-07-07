@@ -231,6 +231,20 @@ def extract_usm_video(raw_data, dest_path):
     command.extend(sum([['-i', x] for x in flat_files], []))
     command.extend([dest_path])
     subprocess.run(command,check=True)
+
+    # poster image @ 1.5s
+    poster_output = dest_path.with_name(dest_path.stem + "_poster.jpg")
+
+    extract_frame_cmd = [
+        'ffmpeg',
+        '-y',
+        '-ss', '1.5',
+        '-i', str(dest_path),
+        '-frames:v', '1',
+        '-q:v', '2',  # high-quality JPEG
+        str(poster_output)
+    ]
+    subprocess.run(extract_frame_cmd, check=True)
 def extract_character_with_faces(env: Environment, source_dir: Path, output_dir: Path):
     path_map = {}
     sprite_to_texture_map = {}
