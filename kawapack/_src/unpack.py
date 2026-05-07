@@ -192,6 +192,7 @@ def export(env: Environment, _orig: Object, target_path: Path) -> None:
 
 
 def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_data, filename):
+    print('extracting from', filename, flush = True)
     source_path_parts = set(source_dir.parts)
     if "chararts" in source_path_parts or "skinpack" in source_path_parts:
         for object in env.objects:
@@ -201,10 +202,7 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
                     target_path = get_target_path(object, source_dir, output_dir)
                     export(env, object, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
-        try:
-            extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
-        except:
-            print('error while extracting avg from', filename, flush = True)
+        extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
     elif "video" in source_path_parts:
         # not a unity object, just a raw mp4 file.
         dest_path = (output_dir / source_dir / filename.replace('.usm','.mp4'))
@@ -286,10 +284,21 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
         if not isFullImages:
             # load base image (last one in sprites) and apply alpha
             # alpha is always a Texture2D and never a Sprite, so we use path_map instead, on newer sprites alpha is baked in so alphaTex.m_PathID will be 0
-            if body['sprites'][-1]['alphaTex']['m_PathID']:
-                base = combine_alpha(texture_map[body['sprites'][-1]['sprite']['m_PathID']].image, path_map[body['sprites'][-1]['alphaTex']['m_PathID']].image)
+            alpha_id = 0
+            sprite_id = 0
+            for s in reversed(body['sprites']):
+                alpha_id = s.get('alphaTex', {}).get('m_PathID', 0)
+                sprite_id = s.get('sprite', {}).get('m_PathID', 0)
+
+                if alpha_id or sprite_id:
+                    break
+            if alpha_id:
+                base = combine_alpha(
+                    texture_map[sprite_id].image,
+                    path_map[alpha_id].image
+                )
             else:
-                base = texture_map[body['sprites'][-1]['sprite']['m_PathID']].image.convert("RGBA")
+                base = texture_map[sprite_id].image.convert("RGBA")
             bw,bh = base.width,base.height
             # calculate face offset, thanks to arkwaifu.cc for this algorithm
             if bw == bh and bw < 1024:
@@ -305,18 +314,23 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                 # pad to larger dimension
                 face_rect['x'] += (bw - max(bw,bh)) // 2
                 face_rect['y'] += (bh - max(bw,bh)) // 2
+        # during some update an extra "zero" sprite was added (path is 0)
+        zeroPadded = not (body['sprites'][-1]['sprite']['m_PathID'] or body['sprites'][-1]['alphaTex']['m_PathID'])
         for faceNum,face in enumerate(body['sprites']):
             dest_path = (output_dir / source_dir / f'{Path(next(iter(env.container.keys()))).stem}#{faceNum+1}${bodyNum+1}').with_suffix(".png")
-            if face['alphaTex']['m_PathID'] and not next(iter(env.container.keys())).endswith('avg_6d5_1.prefab'): # except this one file
+            if next(iter(env.container.keys())).endswith('avg_6d5_1.prefab'):
+                # problem file
+                continue
+            if face['alphaTex']['m_PathID']:
                 face_img = combine_alpha(texture_map[face['sprite']['m_PathID']].image, path_map[face['alphaTex']['m_PathID']].image)
-            else:
-                face_img = texture_map[face['sprite']['m_PathID']].image.convert("RGBA")
-            
+            if not face['sprite']['m_PathID']:
+                continue
+            face_img = texture_map[face['sprite']['m_PathID']].image.convert("RGBA")
             if isFullImages or face.get('isWholeBody',False):
                 face_img.save(dest_path)
                 face_img.close()
                 continue
-            if faceNum == len(body['sprites'])-1:
+            if faceNum >= len(body['sprites']) - (1 + zeroPadded):
                 # for non-full images, the last sprite is identical to the first, so don't save it.
                 continue
             face_img = face_img.resize((face_rect['w'], face_rect['h']))
