@@ -192,7 +192,6 @@ def export(env: Environment, _orig: Object, target_path: Path) -> None:
 
 
 def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_data, filename):
-    print('extracting from', filename, flush = True)
     source_path_parts = set(source_dir.parts)
     if "chararts" in source_path_parts or "skinpack" in source_path_parts:
         for object in env.objects:
@@ -202,7 +201,11 @@ def extract_from_env(env: Environment, source_dir: Path, output_dir: Path, raw_d
                     target_path = get_target_path(object, source_dir, output_dir)
                     export(env, object, target_path)
     elif "avg" in source_path_parts and "characters" in source_path_parts:
-        extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
+        try:
+            extract_character_with_faces(env, Path(str(source_dir).lower()), Path(str(output_dir).lower()))
+        except:
+            print('error while extracting avg from', filename, flush = True)
+            raise
     elif "video" in source_path_parts:
         # not a unity object, just a raw mp4 file.
         dest_path = (output_dir / source_dir / filename.replace('.usm','.mp4'))
