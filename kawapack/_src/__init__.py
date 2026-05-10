@@ -21,12 +21,14 @@ DirPath = str | PathLike[str]
 
 
 def extract(data: BinaryIO, source_dir: DirPath, output_dir: DirPath, filename: str) -> None:
-    output_dir = Path(output_dir)
-    if not output_dir.is_dir():
-        output_dir.mkdir()
     try:
+        print('extracting from', filename, flush = True)
+        output_dir = Path(output_dir)
+        if not output_dir.is_dir():
+            output_dir.mkdir()
         extract_from_env(Environment(data), Path(source_dir), output_dir, data, filename)
     except:
+        print('ERROR while extracting',filename, flush = True)
         traceback.print_exc()
         raise
 
