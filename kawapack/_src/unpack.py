@@ -329,6 +329,7 @@ def extract_character_with_faces(env: Environment, source_dir: Path, output_dir:
                 face_img = combine_alpha(texture_map[face['sprite']['m_PathID']].image, path_map[face['alphaTex']['m_PathID']].image)
             if not face['sprite']['m_PathID']:
                 continue
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
             face_img = texture_map[face['sprite']['m_PathID']].image.convert("RGBA")
             if isFullImages or face.get('isWholeBody',False):
                 face_img.save(dest_path)
